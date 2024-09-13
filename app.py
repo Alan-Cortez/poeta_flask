@@ -32,4 +32,4 @@ def evento():
         ssl=True
     )
     
-    pusher_client.trigger("conexion", "evento", {'message': 'hello alan'})
+    pusher_client.trigger("conexion", "evento", {"message": "hello alan"})
