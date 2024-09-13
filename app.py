@@ -5,7 +5,6 @@ from flask import request
 
 import pusher
 
-
 app = Flask(__name__)
 
 @app.route("/")
@@ -18,18 +17,18 @@ def alumnos():
 
 @app.route("/alumnos/guardar", methods=["POST"])
 def alumnosGuardar():
-    matricula    =request.form["txtMatricula"]
-    nombreapellido=request.form["txtNombreApellido"]
+    matricula      = request.form["txtMatriculaFA"]
+    nombreapellido = request.form["txtNombreApellidoFA"]
     return f"Matrícula: {matricula} Nombre y Apellido: {nombreapellido}"
 
 @app.route("/evento")
 def evento():
     pusher_client = pusher.Pusher(
-        app_id='1767934',
-        key='ffa9ea426828188c22c1',
-        secret='628348e447718a9eec1f',
-        cluster='us2',
+        app_id="1714541",
+        key="cda1cc599395d699a2af",
+        secret="9e9c00fc36600060d9e2",
+        cluster="us2",
         ssl=True
     )
     
-    pusher_client.trigger("conexion", "evento", {"message": "hello alan"})
+    pusher_client.trigger("conexion", "evento", {"txtTemperatura": 35, "txtHumedad": 0.6, "dpFechaHora": "2024-09-12 20:13:00"})
