@@ -18,3 +18,6 @@ def alumnosGuardar():
     matricula    =request.form["txtMatricula"]
     nombreapellido=request.form["txtNombreApellido"]
     return f"Matrícula: {matricula} Nombre y Apellido: {nombreapellido}"
+
+@app.route("/evento")
+def evento()
