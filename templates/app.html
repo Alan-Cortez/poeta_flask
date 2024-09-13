@@ -31,13 +31,13 @@
         Pusher.logToConsole = true;
     
         var pusher = new Pusher('ffa9ea426828188c22c1', {
-          cluster: 'us2'
+          cluster: "us2"
         });
-    //canal -> conexion
     
-        var channel = pusher.subscribe('conexion');
+    //canal -> conexion
+        var channel = pusher.subscribe("conexion");
     //Evento: Accion de la aplicacion    
-    channel.bind('evento', function(data) {
+    channel.bind("evento", function(mensaje) {
           alert("Ya ocurrio el evento en la aplicacion");
         });
       </script>
