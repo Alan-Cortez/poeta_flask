@@ -7,9 +7,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
-      
+
     <title>App</title>
+
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -26,20 +27,26 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-<script>
-    
-        Pusher.logToConsole = true;
-    
-        var pusher = new Pusher('ffa9ea426828188c22c1', {
-          cluster: "us2"
-        });
-    
-    //canal -> conexion
+
+    <script>
+        // Enable pusher logging - don't include this in production
+        Pusher.logToConsole = true
+        
+        var pusher = new Pusher("cda1cc599395d699a2af", {
+            cluster: "us2"
+        })
+        
+        // Canal -> Conexion
         var channel = pusher.subscribe("conexion");
-    //Evento: Accion de la aplicacion    
-    channel.bind("evento", function(mensaje) {
-          alert("Ya ocurrio el evento en la aplicacion");
-        });
-      </script>
+        // Evento: Acción de la aplicación
+        channel.bind("evento", function (mensaje) {
+            // alert("Ya ocurrió el evento en la aplicación")
+            $("#tbodyLog").append(`<tr>
+                <td>${mensaje["txtTemperatura"]}</td>
+                <td>${mensaje["txtHumedad"]}</td>
+                <td>${mensaje["dpFechaHora"]}</td>
+            </tr>`)
+        })
+    </script>
 </body>
 </html>
