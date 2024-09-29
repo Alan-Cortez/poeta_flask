@@ -3,90 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
-
-    <title>Registro de Usuario</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+    <title>App</title>
 </head>
 <body>
-    <div class="container mt-4">
-        <h2>Formulario de Registro</h2>
-        <form id="registroForm" action="/alumnos/guardar" method="POST">
-            <div class="mb-3">
-                <label for="txtMatriculaFA" class="form-label">Matrícula:</label>
-                <input type="text" id="txtMatriculaFA" name="txtMatriculaFA" class="form-control" required>
-            </div>
-
-            <div class="mb-3">
-                <label for="txtNombreApellidoFA" class="form-label">Nombre y Apellido:</label>
-                <input type="text" id="txtNombreApellidoFA" name="txtNombreApellidoFA" class="form-control" required>
-            </div>
-
-            <div class="mb-3">
-                <label for="txtUsername" class="form-label">Nombre de Usuario:</label>
-                <input type="text" id="txtUsername" name="txtUsername" class="form-control" minlength="5" maxlength="20" pattern="^[a-zA-Z0-9]+$" required>
-                <div class="form-text">Solo letras, números, sin espacios ni caracteres especiales.</div>
-            </div>
-
-            <div class="mb-3">
-                <label for="txtPassword" class="form-label">Contraseña:</label>
-                <input type="password" id="txtPassword" name="txtPassword" class="form-control" minlength="8" maxlength="20" required>
-            </div>
-
-            <div class="mb-3">
-                <label for="txtPasswordConfirm" class="form-label">Confirmar Contraseña:</label>
-                <input type="password" id="txtPasswordConfirm" name="txtPasswordConfirm" class="form-control" equalTo="#txtPassword" required>
-            </div>
-
-            <button type="submit" class="btn btn-primary">Registrar</button>
-        </form>
+    <div class="container">
+        <h1>Registro de Usuarios</h1>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Usuario</th>
+                    <th>Contraseña</th>
+                </tr>
+            </thead>
+            <tbody id="tbodyLog"></tbody>
+        </table>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
     <script>
-        $(document).ready(function () {
-            // Validación del formulario
-            $("#registroForm").validate({
-                rules: {
-                    txtUsername: {
-                        required: true,
-                        minlength: 5,
-                        maxlength: 20,
-                        pattern: /^[a-zA-Z0-9]+$/
-                    },
-                    txtPassword: {
-                        required: true,
-                        minlength: 8,
-                        maxlength: 20
-                    },
-                    txtPasswordConfirm: {
-                        required: true,
-                        equalTo: "#txtPassword"
-                    }
-                },
-                messages: {
-                    txtUsername: {
-                        required: "Por favor, ingresa un nombre de usuario.",
-                        minlength: "El nombre de usuario debe tener al menos 5 caracteres.",
-                        maxlength: "El nombre de usuario no debe exceder los 20 caracteres.",
-                        pattern: "Solo se permiten letras y números."
-                    },
-                    txtPassword: {
-                        required: "Por favor, ingresa una contraseña.",
-                        minlength: "La contraseña debe tener al menos 8 caracteres.",
-                        maxlength: "La contraseña no debe exceder los 20 caracteres."
-                    },
-                    txtPasswordConfirm: {
-                        required: "Por favor, confirma tu contraseña.",
-                        equalTo: "Las contraseñas no coinciden."
-                    }
+        // Función para buscar y mostrar los usuarios
+        function buscar() {
+            $.get("/buscar", function (respuesta) {
+                $("#tbodyLog").html(""); // Limpiar la tabla
+                for (var x in respuesta) {
+                    var registro = respuesta[x];
+                    $("#tbodyLog").append(`<tr>
+                        <td>${registro[1]}</td>
+                        <td>${registro[2]}</td>
+                    </tr>`);
                 }
+            }).fail(function() {
+                $("#tbodyLog").html("<tr><td colspan='2'>Error al obtener datos</td></tr>");
             });
+        }
+
+        // Llamar a buscar al cargar la página
+        buscar();
+
+        // Configurar Pusher para actualizar en tiempo real
+        var pusher = new Pusher('ffa9ea426828188c22c1', { cluster: 'us2' });
+        var channel = pusher.subscribe("registrosTiempoReal");
+
+        // Cuando llegue un nuevo evento desde Pusher, actualizar la tabla
+        channel.bind("registroTiempoReal", function (mensaje) {
+            console.log("Nuevo registro recibido desde Pusher:", mensaje);
+            buscar(); // Actualizar la tabla al recibir un nuevo registro
         });
     </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>
