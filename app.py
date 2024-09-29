@@ -1,75 +1,19 @@
-from flask import Flask
-
-from flask import render_template
-from flask import request
-
-import pusher
-
+from flask import Flask, render_template, request, jsonify
 import mysql.connector
 import datetime
 import pytz
+import pusher
 
 con = mysql.connector.connect(
-    host="185.232.14.52",
-    database="u760464709_tst_sep",
-    user="u760464709_tst_sep_usr",
-    password="dJ0CIAFF="
+  host="185.232.14.52",
+  database="u760464709_tst_sep",
+  user="u760464709_tst_sep_usr",
+  password="dJ0CIAFF="
 )
 
 app = Flask(__name__)
 
-@app.route("/")
-def index():
-    con.close()
-
-    return render_template("app.html")
-
-# Ejemplo de ruta GET usando templates para mostrar una vista
-@app.route("/alumnos")
-def alumnos():
-    con.close()
-
-    return render_template("alumnos.html")
-
-# Ejemplo de ruta POST para ver cómo se envia la informacion
-@app.route("/alumnos/guardar", methods=["POST"])
-def alumnosGuardar():
-    con.close()
-    matricula      = request.form["txtMatriculaFA"]
-    nombreapellido = request.form["txtNombreApellidoFA"]
-
-    return f"Matrícula {matricula} Nombre y Apellido {nombreapellido}"
-
-# Código usado en las prácticas
-@app.route("/buscar")
-def buscar():
-    if not con.is_connected():
-        con.reconnect()
-
-    cursor = con.cursor()
-    cursor.execute("SELECT * FROM sensor_log ORDER BY Id_Log DESC")
-    registros = cursor.fetchall()
-
-    con.close()
-
-    return registros
-
-@app.route("/registrar", methods=["GET"])
-def registrar():
-    args = request.args
-
-    if not con.is_connected():
-        con.reconnect()
-
-    cursor = con.cursor()
-
-    sql = "INSERT INTO sensor_log (Temperatura, Humedad, Fecha_Hora) VALUES (%s, %s, %s)"
-    val = (args["temperatura"], args["humedad"], datetime.datetime.now(pytz.timezone("America/Matamoros")))
-    cursor.execute(sql, val)
-    
-    con.commit()
-    con.close()
-
+# Configuración de Pusher
     pusher_client = pusher.Pusher(
         app_id='1767934',
         key='ffa9ea426828188c22c1',
@@ -78,6 +22,47 @@ def registrar():
         ssl=True
     )
 
-    pusher_client.trigger("canalRegistrosTemperaturaHumedad", "registroTemperaturaHumedad", args)
+@app.route("/")
+def index():
+    return render_template("app.html")
 
-    return args
+@app.route("/usuarios")
+def usuarios():
+    return render_template("usuarios.html")
+
+@app.route("/usuarios/guardar", methods=["POST"])
+def usuarios_guardar():
+    usuario = request.form["txtUsuarioFA"]
+    contrasena = request.form["txtContrasenaFA"]
+
+    if not con.is_connected():
+        con.reconnect()
+    cursor = con.cursor()
+
+    # Insertar el usuario en la base de datos
+    sql = "INSERT INTO tst0_usuarios (Nombre_Usuario, Contrasena) VALUES (%s, %s)"
+    val = (usuario, contrasena)
+    cursor.execute(sql, val)
+
+    con.commit()
+
+    # Disparar evento de Pusher
+    pusher_client.trigger("registrosTiempoReal", "registroTiempoReal", {
+        "usuario": usuario,
+        "contrasena": contrasena
+    })
+
+    return jsonify({"status": "success", "usuario": usuario})
+
+@app.route("/buscar")
+def buscar():
+    if not con.is_connected():
+        con.reconnect()
+    cursor = con.cursor()
+    cursor.execute("SELECT * FROM tst0_usuarios ORDER BY Id_Usuario DESC")
+    registros = cursor.fetchall()
+
+    return jsonify(registros)
+
+if __name__ == "__main__":
+    app.run(debug=True)
