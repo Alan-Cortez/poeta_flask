@@ -47,10 +47,10 @@ def alumnosGuardar():
 # Código usado en las prácticas
 def notificarActualizacionTemperaturaHumedad():
     pusher_client = pusher.Pusher(
-        app_id="1714541",
-        key="2df86616075904231311",
-        secret="2f91d936fd43d8e85a1a",
-        cluster="us2",
+        app_id='1767934',
+        key='ffa9ea426828188c22c1',
+        secret='628348e447718a9eec1f',
+        cluster='us2',
         ssl=True
     )
 
