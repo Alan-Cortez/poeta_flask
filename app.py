@@ -14,9 +14,9 @@ app = Flask(__name__)
 
 # Configuración de Pusher
 pusher_client = pusher.Pusher(
-  app_id='1868790',
-  key='e9dbf5518f64c87c2a78',
-  secret='91c83b3f35c5203adbf1',
+  app_id='1767934',
+  key='ffa9ea426828188c22c1',
+  secret='628348e447718a9eec1f',
   cluster='us2',
   ssl=True
 )
@@ -24,7 +24,7 @@ pusher_client = pusher.Pusher(
 # Ruta para renderizar la página principal
 @app.route("/")
 def index():
-    return render_template("app.html")
+    return render_template("usuarios.html")
 
 # Ruta para renderizar la página de usuarios
 @app.route("/usuarios")
