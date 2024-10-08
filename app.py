@@ -1,151 +1,58 @@
-# python.exe -m venv .venv
-# cd .venv/Scripts
-# activate.bat
-# py -m ensurepip --upgrade
-
-from flask import Flask
-
-from flask import render_template
-from flask import request
-from flask import jsonify, make_response
-
-import pusher
-
-import mysql.connector
-import datetime
-import pytz
-
-con = mysql.connector.connect(
-    host="185.232.14.52",
-    database="u760464709_tst_sep",
-    user="u760464709_tst_sep_usr",
-    password="dJ0CIAFF="
-)
+from flask import Flask, request, jsonify
+import pymysql
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
-@app.route("/")
-def index():
-    con.close()
-
-    return render_template("app.html")
-
-@app.route("/alumnos")
-def alumnos():
-    con.close()
-
-    return render_template("alumnos.html")
-
-@app.route("/alumnos/guardar", methods=["POST"])
-def alumnosGuardar():
-    con.close()
-    matricula      = request.form["txtMatriculaFA"]
-    nombreapellido = request.form["txtNombreApellidoFA"]
-
-    return f"Matrícula {matricula} Nombre y Apellido {nombreapellido}"
-
-# Código usado en las prácticas
-def notificarActualizacionTemperaturaHumedad():
-    pusher_client = pusher.Pusher(
-        app_id='1767934',
-        key='ffa9ea426828188c22c1',
-        secret='628348e447718a9eec1f',
-        cluster='us2',
-        ssl=True
+# Conectar a la base de datos
+def conectar_bd():
+    return pymysql.connect(
+        host="localhost",
+        user="root",
+        password="",
+        db="mi_base_datos",
+        cursorclass=pymysql.cursors.DictCursor
     )
 
-    pusher_client.trigger("canalRegistrosTemperaturaHumedad", "registroTemperaturaHumedad", args)
+# Ruta para registrar un nuevo usuario
+@app.route("/registrar", methods=["POST"])
+def registrar_usuario():
+    nombre = request.form["nombre"]
+    password = request.form["password"]
+    hash_password = generate_password_hash(password)  # Hasheando la contraseña
 
-@app.route("/buscar")
-def buscar():
-    if not con.is_connected():
-        con.reconnect()
+    conexion = conectar_bd()
+    with conexion.cursor() as cursor:
+        cursor.execute("INSERT INTO usuarios (nombre, password) VALUES (%s, %s)", (nombre, hash_password))
+        conexion.commit()
 
-    cursor = con.cursor(dictionary=True)
-    cursor.execute("""
-    SELECT Id_Log, Temperatura, Humedad, DATE_FORMAT(Fecha_Hora, '%d/%m/%Y') AS Fecha, DATE_FORMAT(Fecha_Hora, '%H:%i:%s') AS Hora FROM sensor_log
-    ORDER BY Id_Log DESC
-    LIMIT 10 OFFSET 0
-    """)
-    registros = cursor.fetchall()
+    return "Usuario registrado", 201
 
-    con.close()
+# Ruta para iniciar sesión
+@app.route("/login", methods=["POST"])
+def login_usuario():
+    nombre = request.form["nombreLogin"]
+    password = request.form["passwordLogin"]
 
-    return make_response(jsonify(registros))
+    conexion = conectar_bd()
+    with conexion.cursor() as cursor:
+        cursor.execute("SELECT password FROM usuarios WHERE nombre=%s", (nombre,))
+        usuario = cursor.fetchone()
 
-@app.route("/guardar", methods=["POST"])
-def guardar():
-    if not con.is_connected():
-        con.reconnect()
-
-    id          = request.form["id"]
-    temperatura = request.form["temperatura"]
-    humedad     = request.form["humedad"]
-    fechahora   = datetime.datetime.now(pytz.timezone("America/Matamoros"))
-    
-    cursor = con.cursor()
-
-    if id:
-        sql = """
-        UPDATE sensor_log SET
-        Temperatura = %s,
-        Humedad     = %s
-        WHERE Id_Log = %s
-        """
-        val = (temperatura, humedad, id)
+    if usuario and check_password_hash(usuario["password"], password):
+        return jsonify({"success": True})
     else:
-        sql = """
-        INSERT INTO sensor_log (Temperatura, Humedad, Fecha_Hora)
-                        VALUES (%s,          %s,      %s)
-        """
-        val =                  (temperatura, humedad, fechahora)
-    
-    cursor.execute(sql, val)
-    con.commit()
-    con.close()
+        return jsonify({"success": False})
 
-    notificarActualizacionTemperaturaHumedad()
+# Ruta para obtener la lista de usuarios
+@app.route("/usuarios", methods=["GET"])
+def obtener_usuarios():
+    conexion = conectar_bd()
+    with conexion.cursor() as cursor:
+        cursor.execute("SELECT nombre, fecha_registro FROM usuarios")
+        usuarios = cursor.fetchall()
 
-    return make_response(jsonify({}))
+    return jsonify(usuarios)
 
-@app.route("/editar", methods=["GET"])
-def editar():
-    if not con.is_connected():
-        con.reconnect()
-
-    id = request.args["id"]
-
-    cursor = con.cursor(dictionary=True)
-    sql    = """
-    SELECT Id_Log, Temperatura, Humedad FROM sensor_log
-    WHERE Id_Log = %s
-    """
-    val    = (id,)
-
-    cursor.execute(sql, val)
-    registros = cursor.fetchall()
-    con.close()
-
-    return make_response(jsonify(registros))
-
-@app.route("/eliminar", methods=["POST"])
-def eliminar():
-    if not con.is_connected():
-        con.reconnect()
-
-    id = request.form["id"]
-
-    cursor = con.cursor(dictionary=True)
-    sql    = """
-    DELETE FROM sensor_log
-    WHERE Id_Log = %s
-    """
-    val    = (id,)
-
-    cursor.execute(sql, val)
-    con.commit()
-    con.close()
-
-    notificarActualizacionTemperaturaHumedad()
-
-    return make_response(jsonify({}))
+if __name__ == "__main__":
+    app.run(debug=True)
