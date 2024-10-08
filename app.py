@@ -1,58 +1,106 @@
-from flask import Flask, request, jsonify
-import pymysql
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, render_template, request, jsonify
+import mysql.connector
+import pusher
+
+# Configuración de conexión MySQL
+con = mysql.connector.connect(
+  host="185.232.14.52",
+  database="u760464709_tst_sep",
+  user="u760464709_tst_sep_usr",
+  password="dJ0CIAFF="
+)
 
 app = Flask(__name__)
 
-# Conectar a la base de datos
-def conectar_bd():
-    return pymysql.connect(
-        host="localhost",
-        user="root",
-        password="",
-        db="mi_base_datos",
-        cursorclass=pymysql.cursors.DictCursor
-    )
+# Configuración de Pusher
+pusher_client = pusher.Pusher(
+  app_id='1868790',
+  key='e9dbf5518f64c87c2a78',
+  secret='91c83b3f35c5203adbf1',
+  cluster='us2',
+  ssl=True
+)
 
-# Ruta para registrar un nuevo usuario
-@app.route("/registrar", methods=["POST"])
-def registrar_usuario():
-    nombre = request.form["nombre"]
-    password = request.form["password"]
-    hash_password = generate_password_hash(password)  # Hasheando la contraseña
+# Ruta para renderizar la página principal
+@app.route("/")
+def index():
+    return render_template("app.html")
 
-    conexion = conectar_bd()
-    with conexion.cursor() as cursor:
-        cursor.execute("INSERT INTO usuarios (nombre, password) VALUES (%s, %s)", (nombre, hash_password))
-        conexion.commit()
+# Ruta para renderizar la página de usuarios
+@app.route("/usuarios")
+def usuarios():
+    return render_template("usuarios.html")
 
-    return "Usuario registrado", 201
+# Crear usuario
+@app.route("/usuarios/guardar", methods=["POST"])
+def usuarios_guardar():
+    usuario = request.form["txtUsuarioFA"]
+    contrasena = request.form["txtContrasenaFA"]
 
-# Ruta para iniciar sesión
-@app.route("/login", methods=["POST"])
-def login_usuario():
-    nombre = request.form["nombreLogin"]
-    password = request.form["passwordLogin"]
+    if not con.is_connected():
+        con.reconnect()
+    cursor = con.cursor()
 
-    conexion = conectar_bd()
-    with conexion.cursor() as cursor:
-        cursor.execute("SELECT password FROM usuarios WHERE nombre=%s", (nombre,))
-        usuario = cursor.fetchone()
+    # Insertar nuevo usuario
+    sql = "INSERT INTO tst0_usuarios (Nombre_Usuario, Contrasena) VALUES (%s, %s)"
+    cursor.execute(sql, (usuario, contrasena))
+    con.commit()
 
-    if usuario and check_password_hash(usuario["password"], password):
-        return jsonify({"success": True})
-    else:
-        return jsonify({"success": False})
+    # Disparar evento Pusher para notificar la inserción
+    pusher_client.trigger("registrosTiempoReal", "registroTiempoReal", {"usuario": usuario})
 
-# Ruta para obtener la lista de usuarios
-@app.route("/usuarios", methods=["GET"])
-def obtener_usuarios():
-    conexion = conectar_bd()
-    with conexion.cursor() as cursor:
-        cursor.execute("SELECT nombre, fecha_registro FROM usuarios")
-        usuarios = cursor.fetchall()
+    return jsonify({"status": "success", "message": "Usuario creado exitosamente"})
 
-    return jsonify(usuarios)
+# Leer todos los usuarios
+@app.route("/buscar")
+def buscar():
+    if not con.is_connected():
+        con.reconnect()
+    cursor = con.cursor()
+    cursor.execute("SELECT * FROM tst0_usuarios ORDER BY Id_Usuario DESC")
+    registros = cursor.fetchall()
+
+    return jsonify(registros)
+
+# Actualizar usuario
+@app.route("/usuarios/actualizar", methods=["POST"])
+def usuarios_actualizar():
+    id_usuario = request.form["id_usuario"]
+    usuario = request.form["txtUsuarioFA"]
+    contrasena = request.form["txtContrasenaFA"]
+
+    if not con.is_connected():
+        con.reconnect()
+    cursor = con.cursor()
+
+    # Actualizar usuario
+    sql = "UPDATE tst0_usuarios SET Nombre_Usuario=%s, Contrasena=%s WHERE Id_Usuario=%s"
+    cursor.execute(sql, (usuario, contrasena, id_usuario))
+    con.commit()
+
+    # Disparar evento Pusher para notificar la actualización
+    pusher_client.trigger("registrosTiempoReal", "registroTiempoReal", {"usuario": usuario})
+
+    return jsonify({"status": "success", "message": "Usuario actualizado exitosamente"})
+
+# Eliminar usuario
+@app.route("/usuarios/eliminar", methods=["POST"])
+def usuarios_eliminar():
+    id_usuario = request.form["id_usuario"]
+
+    if not con.is_connected():
+        con.reconnect()
+    cursor = con.cursor()
+
+    # Eliminar usuario
+    sql = "DELETE FROM tst0_usuarios WHERE Id_Usuario=%s"
+    cursor.execute(sql, (id_usuario,))
+    con.commit()
+
+    # Disparar evento Pusher para notificar la eliminación
+    pusher_client.trigger("registrosTiempoReal", "registroTiempoReal", {"id_usuario": id_usuario})
+
+    return jsonify({"status": "success", "message": "Usuario eliminado exitosamente"})
 
 if __name__ == "__main__":
     app.run(debug=True)
