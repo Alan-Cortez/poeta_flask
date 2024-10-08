@@ -45,7 +45,7 @@
         buscar();
 
         // Configurar Pusher para actualizar en tiempo real
-        var pusher = new Pusher('e9dbf5518f64c87c2a78', { cluster: 'us2' });
+        var pusher = new Pusher('ffa9ea426828188c22c1', { cluster: 'us2' });
         var channel = pusher.subscribe("registrosTiempoReal");
 
         // Cuando llegue un nuevo evento desde Pusher, actualizar la tabla
